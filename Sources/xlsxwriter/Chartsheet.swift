@@ -13,7 +13,7 @@ public struct Chartsheet {
     }
 
     /// Insert a chart object into a chartsheet
-    @discardableResult public func setChart(_ chart: Chart) -> Chartsheet {
+    @discardableResult public func chart(_ chart: Chart) -> Chartsheet {
         chartsheet_set_chart(lxw_chartsheet, chart.lxw_chart)
         return self
     }
@@ -37,13 +37,13 @@ public struct Chartsheet {
     }
 
     /// Protect elements of a chartsheet from modification.
-    @discardableResult public func protect(password: String) -> Chartsheet {
+    @discardableResult public func protect(usingPassword password: String) -> Chartsheet {
         password.withCString { chartsheet_protect(lxw_chartsheet, $0, nil) }
         return self
     }
 
     /// Set the paper type for printing.
-    @discardableResult public func paper(of type: PaperType) -> Chartsheet {
+    @discardableResult public func paper(ofType type: PaperType) -> Chartsheet {
         chartsheet_set_paper(lxw_chartsheet, type.rawValue)
         return self
     }
@@ -67,13 +67,13 @@ public struct Chartsheet {
     }
 
     /// Set the printed page footer caption.
-    @discardableResult public func setFooter(_ footer: String) -> Chartsheet {
+    @discardableResult public func footer(_ footer: String) -> Chartsheet {
         let _ = footer.withCString { chartsheet_set_footer(lxw_chartsheet, $0) }
         return self
     }
 
     /// Set the printed page header caption.
-    @discardableResult public func setHeader(_ header: String) -> Chartsheet {
+    @discardableResult public func header(_ header: String) -> Chartsheet {
         let _ = header.withCString { chartsheet_set_header(lxw_chartsheet, $0) }
         return self
     }

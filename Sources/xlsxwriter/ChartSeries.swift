@@ -72,7 +72,7 @@ public struct Chart {
     }
 
     /// Turn on/off the major gridlines for an axis.
-    @discardableResult public func majorGridlinesVisible(visible: Bool = true, forAxis axis: Axis) -> Chart {
+    @discardableResult public func majorGridlinesVisible(_ visible: Bool = true, forAxis axis: Axis) -> Chart {
         let visible = UInt8(visible ? 1 : 0)
         switch axis {
         case .x: chart_axis_major_gridlines_set_visible(lxw_chart.pointee.x_axis, visible)
@@ -162,18 +162,18 @@ public struct Series {
     }
 
     /// Set a series "values" range using row and column values.
-    @discardableResult public func values(sheet: Worksheet, range: Range) -> Series {
+    @discardableResult public func values(forSheet sheet: Worksheet, range: CellRange) -> Series {
         let _ = sheet.name.withCString {
-            chart_series_set_values(lxw_chart_series, $0, range.row, range.col, range.row2, range.col2)
+            chart_series_set_values(lxw_chart_series, $0, range.startRow, range.startColumn, range.endRow, range.endColumn)
         }
         return self
     }
 
     /// Set a series "categories" range using row and column values.
-    @discardableResult public func categories(sheet: Worksheet, range: Range) -> Series {
+    @discardableResult public func categories(forSheet sheet: Worksheet, range: CellRange) -> Series {
         let _ = sheet.name.withCString {
             chart_series_set_categories(
-                lxw_chart_series, $0, range.row, range.col, range.row2, range.col2
+                lxw_chart_series, $0, range.startRow, range.startColumn, range.endRow, range.endColumn
             )
         }
         return self
@@ -187,15 +187,15 @@ public struct Series {
     }
 
     /// Set a series name formula using row and column values.
-    @discardableResult public func name(sheet: Worksheet, cell: Cell) -> Series {
+    @discardableResult public func name(forSheet sheet: Worksheet, cell: Cell) -> Series {
         let _ = sheet.name.withCString {
-            chart_series_set_name_range(lxw_chart_series, $0, cell.row, cell.col)
+            chart_series_set_name_range(lxw_chart_series, $0, cell.row, cell.column)
         }
         return self
     }
 
     /// Turn on a trendline for a chart data series.
-    @discardableResult public func trendline(of type: TrendlineType, value: Int = 2) -> Series {
+    @discardableResult public func trendline(ofType type: TrendlineType, value: Int = 2) -> Series {
         chart_series_set_trendline(lxw_chart_series, type.rawValue, UInt8(value))
         return self
     }
@@ -208,12 +208,12 @@ public struct Series {
 
     /// Set the trendline line properties for a chart data series.
     @discardableResult public func trendlineColor(
-        _ color: Color = .black, width: Float = 2.25, dash_type: Int, transparency: Int = 0,
+        _ color: Color = .black, width: Float = 2.25, dashType: Int, transparency: Int = 0,
         hide: Bool = false
     )
         -> Series {
         var line = lxw_chart_line(
-            color: Color.black.hex, none: hide ? 1 : 0, width: width, dash_type: UInt8(dash_type),
+            color: Color.black.hex, none: hide ? 1 : 0, width: width, dash_type: UInt8(dashType),
             transparency: UInt8(transparency)
         )
         chart_series_set_trendline_line(lxw_chart_series, &line)

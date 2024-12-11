@@ -37,7 +37,7 @@ public struct Worksheet {
     @discardableResult public func writeColumn(_ values: [Value], cell: Cell, format: Format? = nil)
         -> Worksheet {
         var r = cell.row
-        let c = cell.col
+        let c = cell.column
         for value in values {
             writeValue(value, cell: .init(r, c), format: format)
             r += 1
@@ -49,7 +49,7 @@ public struct Worksheet {
     @discardableResult public func writeRow(_ values: [Value], cell: Cell, format: Format? = nil)
         -> Worksheet {
         let r = cell.row
-        var c = cell.col
+        var c = cell.column
         for value in values {
             writeValue(value, cell: .init(r, c), format: format)
             c += 1
@@ -92,7 +92,7 @@ public struct Worksheet {
     @discardableResult public func writeValue(_ value: Value, cell: Cell, format: Format? = nil)
         -> Worksheet {
         let r = cell.row
-        let c = cell.col
+        let c = cell.column
         let f = format?.lxw_format
         let error: lxw_error
         switch value {
@@ -149,10 +149,10 @@ public struct Worksheet {
     }
 
     /// Set the properties for one or more columns of cells.
-    @discardableResult public func column(_ cols: Cols, width: Double, format: Format? = nil)
+    @discardableResult public func column(_ cols: ColumnRange, width: Double, format: Format? = nil)
         -> Worksheet {
-        let first = cols.col
-        let last = cols.col2
+        let first = cols.startColumn
+        let last = cols.endColumn
         let f = format?.lxw_format
         _ = worksheet_set_column(lxw_worksheet, first, last, width, f)
         return self
@@ -168,8 +168,8 @@ public struct Worksheet {
     /// Set the properties for one or more columns of cells.
     @discardableResult public func hideColumns(_ col: Int, width: Double = 8.43) -> Worksheet {
         let first = UInt16(col)
-        let cols: Cols = "A:XFD"
-        let last = cols.col2
+        let cols: ColumnRange = "A:XFD"
+        let last = cols.endColumn
         var o = lxw_row_col_options(hidden: 1, level: 0, collapsed: 0)
         _ = worksheet_set_column_opt(lxw_worksheet, first, last, width, nil, &o)
         return self
@@ -190,14 +190,14 @@ public struct Worksheet {
     }
 
     /// Set the print area for a worksheet.
-    @discardableResult public func printArea(forRange range: Range) -> Worksheet {
-        let _ = worksheet_print_area(lxw_worksheet, range.row, range.col, range.row2, range.col2)
+    @discardableResult public func printArea(forRange range: CellRange) -> Worksheet {
+        let _ = worksheet_print_area(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
         return self
     }
 
     /// Set the autofilter area in the worksheet.
-    @discardableResult public func autoFilter(forRange range: Range) -> Worksheet {
-        let _ = worksheet_autofilter(lxw_worksheet, range.row, range.col, range.row2, range.col2)
+    @discardableResult public func autoFilter(forRange range: CellRange) -> Worksheet {
+        let _ = worksheet_autofilter(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
         return self
     }
 
@@ -209,7 +209,7 @@ public struct Worksheet {
 
     /// Set a table in the worksheet.
     @discardableResult public func table(forRange
-        range: Range, name: String? = nil, header: [(String, Format?)] = []
+        range: CellRange, name: String? = nil, header: [(String, Format?)] = []
     ) -> Worksheet {
         table(
             forRange: range, name: name, header: header.map { $0.0 }, format: header.map { $0.1 },
@@ -218,17 +218,17 @@ public struct Worksheet {
     }
 
     /// Merge a range of cells in the worksheet.
-    @discardableResult public func mergeCell(forRange range: Range, string: String, format: Format? = nil)
+    @discardableResult public func mergeCell(forRange range: CellRange, string: String, format: Format? = nil)
         -> Worksheet {
         worksheet_merge_range(
-            lxw_worksheet, range.row, range.col, range.row2, range.col2, string, format?.lxw_format
+            lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn, string, format?.lxw_format
         )
         return self
     }
 
     /// Set a table in the worksheet.
     @discardableResult public func table(
-        forRange range: Range, name: String? = nil, header: [String] = [], format: [Format?] = [],
+        forRange range: CellRange, name: String? = nil, header: [String] = [], format: [Format?] = [],
         totalRow: [TotalFunction] = []
     ) -> Worksheet {
         var options = lxw_table_options()
@@ -257,7 +257,7 @@ public struct Worksheet {
             options.columns = buffer.baseAddress
         }
         _ = worksheet_add_table(
-            lxw_worksheet, range.row, range.col, range.row2 + (totalRow.isEmpty ? 0 : 1), range.col2,
+            lxw_worksheet, range.startRow, range.startColumn, range.endRow + (totalRow.isEmpty ? 0 : 1), range.endColumn,
             &options
         )
         if let _ = name { options.name.deallocate() }
