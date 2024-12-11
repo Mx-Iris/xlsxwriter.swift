@@ -8,7 +8,11 @@ import libxlsxwriter
 /// Struct to represent the formatting properties of an Excel format.
 public struct Format {
     let lxw_format: UnsafeMutablePointer<lxw_format>
-    init(_ lxw_format: UnsafeMutablePointer<lxw_format>) { self.lxw_format = lxw_format }
+    
+    init(_ lxw_format: UnsafeMutablePointer<lxw_format>) {
+        self.lxw_format = lxw_format
+    }
+    
     /// Turn on bold for the format font.
     @discardableResult public func bold() -> Format {
         format_set_bold(lxw_format)
