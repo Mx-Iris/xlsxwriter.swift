@@ -8,23 +8,23 @@ import libxlsxwriter
 /// Struct to represent an Excel worksheet.
 public struct Worksheet {
     private var lxw_worksheet: UnsafeMutablePointer<lxw_worksheet>
-    
+
     var name: String { String(cString: lxw_worksheet.pointee.name) }
-    
+
     init(_ lxw_worksheet: UnsafeMutablePointer<lxw_worksheet>) { self.lxw_worksheet = lxw_worksheet }
     /// Insert a chart object into a worksheet.
-    public func insertChart(_ chart: Chart, position pos: (row: Int, col: Int)) -> Worksheet {
-        let r = UInt32(pos.row)
-        let c = UInt16(pos.col)
+    public func insertChart(_ chart: Chart, cell: Cell) -> Worksheet {
+        let r = UInt32(cell.row)
+        let c = UInt16(cell.column)
         _ = worksheet_insert_chart(lxw_worksheet, r, c, chart.lxw_chart)
         return self
     }
 
     /// Insert a chart object into a worksheet, with options.
-    public func insertChart(_ chart: Chart, position pos: (row: Int, col: Int), scale: (x: Double, y: Double))
+    public func insertChart(_ chart: Chart, cell: Cell, scale: (x: Double, y: Double))
         -> Worksheet {
-        let r = UInt32(pos.row)
-        let c = UInt16(pos.col)
+        let r = UInt32(cell.row)
+        let c = UInt16(cell.column)
         var o = lxw_chart_options(
             x_offset: 0, y_offset: 0, x_scale: scale.x, y_scale: scale.y, object_position: 2,
             description: nil, decorative: 0
@@ -33,56 +33,25 @@ public struct Worksheet {
         return self
     }
 
-    /// Write a column of data starting from (row, col).
-    @discardableResult public func writeColumn(_ values: [Value], cell: Cell, format: Format? = nil)
-        -> Worksheet {
-        var r = cell.row
-        let c = cell.column
-        for value in values {
-            writeValue(value, cell: .init(r, c), format: format)
-            r += 1
-        }
-        return self
-    }
-
-    /// Write a row of data starting from (row, col).
-    @discardableResult public func writeRow(_ values: [Value], cell: Cell, format: Format? = nil)
-        -> Worksheet {
-        let r = cell.row
-        var c = cell.column
-        for value in values {
-            writeValue(value, cell: .init(r, c), format: format)
-            c += 1
-        }
-        return self
-    }
-
-    /// Write a row of Double values starting from (row, col).
-    @discardableResult public func writeNumbers(
-        _ numbers: [Double], row: Int, col: Int = 0, format: Format? = nil
+    @discardableResult public func writeNumber(
+        _ number: Double, cell: Cell, format: Format? = nil
     ) -> Worksheet {
         let f = format?.lxw_format
-        let r = UInt32(row)
-        var c = UInt16(col)
-        for number in numbers {
-            worksheet_write_number(lxw_worksheet, r, c, number, f)
-            c += 1
-        }
-
+        let r = UInt32(cell.row)
+        var c = UInt16(cell.column)
+        worksheet_write_number(lxw_worksheet, r, c, number, f)
         return self
     }
+    
 
     /// Write a row of String values starting from (row, col).
-    @discardableResult public func writeStrings(
-        _ strings: [String], row: Int, col: Int = 0, format: Format? = nil
+    @discardableResult public func writeString(
+        _ string: String, cell: Cell, format: Format? = nil
     ) -> Worksheet {
         let f = format?.lxw_format
-        let r = UInt32(row)
-        var c = UInt16(col)
-        for string in strings {
-            let _ = string.withCString { s in worksheet_write_string(lxw_worksheet, r, c, s, f) }
-            c += 1
-        }
+        let r = UInt32(cell.row)
+        var c = UInt16(cell.column)
+        _ = string.withCString { s in worksheet_write_string(lxw_worksheet, r, c, s, f) }
 
         return self
     }
@@ -148,11 +117,18 @@ public struct Worksheet {
         return self
     }
 
-    /// Set the properties for one or more columns of cells.
-    @discardableResult public func column(_ cols: ColumnRange, width: Double, format: Format? = nil)
+    @discardableResult public func column(_ col: Int, width: Double, format: Format? = nil)
         -> Worksheet {
-        let first = cols.startColumn
-        let last = cols.endColumn
+        let f = format?.lxw_format
+        worksheet_set_column(lxw_worksheet, UInt16(col), UInt16(col), width, f)
+        return self
+    }
+
+    /// Set the properties for one or more columns of cells.
+    @discardableResult public func column(_ columnRange: ColumnRange, width: Double, format: Format? = nil)
+        -> Worksheet {
+        let first = columnRange.startColumn
+        let last = columnRange.endColumn
         let f = format?.lxw_format
         _ = worksheet_set_column(lxw_worksheet, first, last, width, f)
         return self
@@ -166,10 +142,9 @@ public struct Worksheet {
     }
 
     /// Set the properties for one or more columns of cells.
-    @discardableResult public func hideColumns(_ col: Int, width: Double = 8.43) -> Worksheet {
+    @discardableResult public func hideColumn(_ col: Int, width: Double = 8.43) -> Worksheet {
         let first = UInt16(col)
-        let cols: ColumnRange = "A:XFD"
-        let last = cols.endColumn
+        let last = UInt16(col)
         var o = lxw_row_col_options(hidden: 1, level: 0, collapsed: 0)
         _ = worksheet_set_column_opt(lxw_worksheet, first, last, width, nil, &o)
         return self
@@ -208,9 +183,8 @@ public struct Worksheet {
     }
 
     /// Set a table in the worksheet.
-    @discardableResult public func table(forRange
-        range: CellRange, name: String? = nil, header: [(String, Format?)] = []
-    ) -> Worksheet {
+    @discardableResult public func table(forRange range: CellRange,
+                                         name: String? = nil, header: [(String, Format?)] = []) -> Worksheet {
         table(
             forRange: range, name: name, header: header.map { $0.0 }, format: header.map { $0.1 },
             totalRow: []
