@@ -13,15 +13,17 @@ public struct Worksheet {
 
     init(_ lxw_worksheet: UnsafeMutablePointer<lxw_worksheet>) { self.lxw_worksheet = lxw_worksheet }
     /// Insert a chart object into a worksheet.
-    public func insertChart(_ chart: Chart, cell: Cell) -> Worksheet {
+    public func insertChart(_ chart: Chart, cell: Cell) throws -> Worksheet {
         let r = UInt32(cell.row)
         let c = UInt16(cell.column)
-        _ = worksheet_insert_chart(lxw_worksheet, r, c, chart.lxw_chart)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_insert_chart(lxw_worksheet, r, c, chart.lxw_chart)
+        }
         return self
     }
 
     /// Insert a chart object into a worksheet, with options.
-    public func insertChart(_ chart: Chart, cell: Cell, scale: (x: Double, y: Double))
+    public func insertChart(_ chart: Chart, cell: Cell, scale: (x: Double, y: Double)) throws
         -> Worksheet {
         let r = UInt32(cell.row)
         let c = UInt16(cell.column)
@@ -29,43 +31,49 @@ public struct Worksheet {
             x_offset: 0, y_offset: 0, x_scale: scale.x, y_scale: scale.y, object_position: 2,
             description: nil, decorative: 0
         )
-        worksheet_insert_chart_opt(lxw_worksheet, r, c, chart.lxw_chart, &o)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_insert_chart_opt(lxw_worksheet, r, c, chart.lxw_chart, &o)
+        }
         return self
     }
 
-    @discardableResult public func writeNumber(
-        _ number: Double, cell: Cell, format: Format? = nil
-    ) -> Worksheet {
+    @discardableResult public func writeNumber(_ number: Double, cell: Cell, format: Format? = nil) throws -> Worksheet {
         let f = format?.lxw_format
         let r = UInt32(cell.row)
         var c = UInt16(cell.column)
-        worksheet_write_number(lxw_worksheet, r, c, number, f)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_write_number(lxw_worksheet, r, c, number, f)
+        }
         return self
     }
-    
 
     /// Write a row of String values starting from (row, col).
     @discardableResult public func writeString(
         _ string: String, cell: Cell, format: Format? = nil
-    ) -> Worksheet {
+    ) throws -> Worksheet {
         let f = format?.lxw_format
         let r = UInt32(cell.row)
         var c = UInt16(cell.column)
-        _ = string.withCString { s in worksheet_write_string(lxw_worksheet, r, c, s, f) }
+        
+        try string.withCString { s in
+            try XLSXWriterError.throwIfNeeded {
+                worksheet_write_string(lxw_worksheet, r, c, s, f)
+            }
+        }
 
         return self
     }
 
     /// Write data to a worksheet cell by calling the appropriate
     /// worksheet_write_*() method based on the type of data being passed.
-    @discardableResult public func writeValue(_ value: Value, cell: Cell, format: Format? = nil)
-        -> Worksheet {
+    @discardableResult public func writeValue(_ value: Value, cell: Cell, format: Format? = nil) throws -> Worksheet {
         let r = cell.row
         let c = cell.column
         let f = format?.lxw_format
         let error: lxw_error
         switch value {
-        case let .number(number): error = worksheet_write_number(lxw_worksheet, r, c, number, f)
+        case let .number(number):
+            error = worksheet_write_number(lxw_worksheet, r, c, number, f)
         case let .string(string):
             error = string.withCString { s in worksheet_write_string(lxw_worksheet, r, c, s, f) }
         case let .url(url):
@@ -82,7 +90,10 @@ public struct Worksheet {
             let num = (datetime.timeIntervalSince1970 / 86400) + 25569
             worksheet_write_number(lxw_worksheet, r, c, num, f)
         }
-        if error.rawValue != 0 { fatalError(String(cString: lxw_strerror(error))) }
+        
+        try XLSXWriterError.throwIfNeeded {
+            error
+        }
 
         return self
     }
@@ -117,36 +128,42 @@ public struct Worksheet {
         return self
     }
 
-    @discardableResult public func column(_ col: Int, width: Double, format: Format? = nil)
-        -> Worksheet {
+    @discardableResult public func column(_ col: Int, width: Double, format: Format? = nil) throws -> Worksheet {
         let f = format?.lxw_format
-        worksheet_set_column(lxw_worksheet, UInt16(col), UInt16(col), width, f)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_set_column(lxw_worksheet, UInt16(col), UInt16(col), width, f)
+        }
         return self
     }
 
     /// Set the properties for one or more columns of cells.
-    @discardableResult public func column(_ columnRange: ColumnRange, width: Double, format: Format? = nil)
-        -> Worksheet {
+    @discardableResult public func column(_ columnRange: ColumnRange, width: Double, format: Format? = nil) throws -> Worksheet {
         let first = columnRange.startColumn
         let last = columnRange.endColumn
         let f = format?.lxw_format
-        _ = worksheet_set_column(lxw_worksheet, first, last, width, f)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_set_column(lxw_worksheet, first, last, width, f)
+        }
         return self
     }
 
     /// Set the properties for a row of cells
-    @discardableResult public func row(_ row: UInt32, height: Double, format: Format? = nil) -> Worksheet {
+    @discardableResult public func row(_ row: UInt32, height: Double, format: Format? = nil) throws -> Worksheet {
         let f = format?.lxw_format
-        _ = worksheet_set_row(lxw_worksheet, row, height, f)
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_set_row(lxw_worksheet, row, height, f)
+        }
         return self
     }
 
     /// Set the properties for one or more columns of cells.
-    @discardableResult public func hideColumn(_ col: Int, width: Double = 8.43) -> Worksheet {
+    @discardableResult public func hideColumn(_ col: Int, width: Double = 8.43) throws -> Worksheet {
         let first = UInt16(col)
         let last = UInt16(col)
-        var o = lxw_row_col_options(hidden: 1, level: 0, collapsed: 0)
-        _ = worksheet_set_column_opt(lxw_worksheet, first, last, width, nil, &o)
+        try XLSXWriterError.throwIfNeeded {
+            var o = lxw_row_col_options(hidden: 1, level: 0, collapsed: 0)
+            return worksheet_set_column_opt(lxw_worksheet, first, last, width, nil, &o)
+        }
         return self
     }
 
@@ -165,14 +182,18 @@ public struct Worksheet {
     }
 
     /// Set the print area for a worksheet.
-    @discardableResult public func printArea(forRange range: CellRange) -> Worksheet {
-        let _ = worksheet_print_area(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
+    @discardableResult public func printArea(forRange range: CellRange) throws -> Worksheet {
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_print_area(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
+        }
         return self
     }
 
     /// Set the autofilter area in the worksheet.
-    @discardableResult public func autoFilter(forRange range: CellRange) -> Worksheet {
-        let _ = worksheet_autofilter(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
+    @discardableResult public func autoFilter(forRange range: CellRange) throws -> Worksheet {
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_autofilter(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn)
+        }
         return self
     }
 
@@ -183,20 +204,22 @@ public struct Worksheet {
     }
 
     /// Set a table in the worksheet.
-    @discardableResult public func table(forRange range: CellRange,
-                                         name: String? = nil, header: [(String, Format?)] = []) -> Worksheet {
-        table(
+    @discardableResult public func table(
+        forRange range: CellRange,
+        name: String? = nil,
+        header: [(String, Format?)] = []
+    ) throws -> Worksheet {
+        try table(
             forRange: range, name: name, header: header.map { $0.0 }, format: header.map { $0.1 },
             totalRow: []
         )
     }
 
     /// Merge a range of cells in the worksheet.
-    @discardableResult public func mergeCell(forRange range: CellRange, string: String, format: Format? = nil)
-        -> Worksheet {
-        worksheet_merge_range(
-            lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn, string, format?.lxw_format
-        )
+    @discardableResult public func mergeCell(forRange range: CellRange, string: String, format: Format? = nil) throws -> Worksheet {
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_merge_range(lxw_worksheet, range.startRow, range.startColumn, range.endRow, range.endColumn, string, format?.lxw_format)
+        }
         return self
     }
 
@@ -204,7 +227,7 @@ public struct Worksheet {
     @discardableResult public func table(
         forRange range: CellRange, name: String? = nil, header: [String] = [], format: [Format?] = [],
         totalRow: [TotalFunction] = []
-    ) -> Worksheet {
+    ) throws -> Worksheet {
         var options = lxw_table_options()
         if let name = name { options.name = makeCString(from: name) }
         options.style_type = UInt8(LXW_TABLE_STYLE_TYPE_MEDIUM.rawValue)
@@ -230,10 +253,12 @@ public struct Worksheet {
             }
             options.columns = buffer.baseAddress
         }
-        _ = worksheet_add_table(
-            lxw_worksheet, range.startRow, range.startColumn, range.endRow + (totalRow.isEmpty ? 0 : 1), range.endColumn,
-            &options
-        )
+        try XLSXWriterError.throwIfNeeded {
+            worksheet_add_table(
+                lxw_worksheet, range.startRow, range.startColumn, range.endRow + (totalRow.isEmpty ? 0 : 1), range.endColumn,
+                &options
+            )
+        }
         if let _ = name { options.name.deallocate() }
         table_columns.forEach { $0.header.deallocate() }
         return self

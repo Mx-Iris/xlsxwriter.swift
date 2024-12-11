@@ -10,40 +10,49 @@ public struct Workbook {
     var lxw_workbook: UnsafeMutablePointer<lxw_workbook>
 
     /// Create a new workbook object.
-    public init(name: String) { self.lxw_workbook = name.withCString { workbook_new($0) } }
+    public init?(filePath: String) {
+        guard let workbook = filePath.withCString ({ workbook_new($0) }) else { return nil }
+        self.lxw_workbook = workbook
+    }
+    
     /// Close the Workbook object and write the XLSX file.
-    public func close() {
-        let error = workbook_close(lxw_workbook)
-        if error.rawValue != 0 { fatalError(String(cString: lxw_strerror(error))) }
+    public func close() throws {
+        try XLSXWriterError.throwIfNeeded {
+            workbook_close(lxw_workbook)
+        }
     }
 
     /// Add a new worksheet to the Excel workbook.
-    public func addWorksheet(name: String? = nil) -> Worksheet {
-        let worksheet: UnsafeMutablePointer<lxw_worksheet>
+    public func addWorksheet(name: String? = nil) -> Worksheet? {
+        var worksheet: UnsafeMutablePointer<lxw_worksheet>?
         if let name = name {
             worksheet = name.withCString { workbook_add_worksheet(lxw_workbook, $0) }
         } else {
             worksheet = workbook_add_worksheet(lxw_workbook, nil)
         }
-        return Worksheet(worksheet)
+        
+        return worksheet.map { Worksheet($0) }
     }
 
     /// Add a new chartsheet to a workbook.
-    public func addChartsheet(name: String? = nil) -> Chartsheet {
-        let chartsheet: UnsafeMutablePointer<lxw_chartsheet>
+    public func addChartsheet(name: String? = nil) -> Chartsheet? {
+        let chartsheet: UnsafeMutablePointer<lxw_chartsheet>?
         if let name = name {
             chartsheet = name.withCString { workbook_add_chartsheet(lxw_workbook, $0) }
         } else {
             chartsheet = workbook_add_chartsheet(lxw_workbook, nil)
         }
-        return Chartsheet(chartsheet)
+        return chartsheet.map { Chartsheet($0) }
     }
 
     /// Add a new format to the Excel workbook.
-    public func addFormat() -> Format { Format(workbook_add_format(lxw_workbook)) }
+    public func addFormat() -> Format? {
+        workbook_add_format(lxw_workbook).map { Format($0) }
+    }
+    
     /// Create a new chart to be added to a worksheet
-    public func addChart(of type: ChartType) -> Chart {
-        Chart(workbook_add_chart(lxw_workbook, type.rawValue))
+    public func addChart(of type: ChartType) -> Chart? {
+        workbook_add_chart(lxw_workbook, type.rawValue).map { Chart($0) }
     }
 
     /// Get a worksheet object from its name.
@@ -62,7 +71,11 @@ public struct Workbook {
     }
 
     /// Validate a worksheet or chartsheet name.
-    func validate(sheetName: String) {
-        _ = sheetName.withCString { workbook_validate_sheet_name(lxw_workbook, $0) }
+    func validate(sheetName: String) throws {
+        try sheetName.withCString { sheetName in
+            try XLSXWriterError.throwIfNeeded {
+                workbook_validate_sheet_name(lxw_workbook, sheetName)
+            }
+        }
     }
 }
