@@ -9,7 +9,9 @@ import libxlsxwriter
 
 public struct Cell: ExpressibleByStringLiteral, ExpressibleByArrayLiteral {
     let row: UInt32
+    
     let column: UInt16
+    
     public init(stringLiteral value: String) {
         (self.row, self.column) = value.withCString { (lxw_name_to_row($0), lxw_name_to_col($0)) }
     }
@@ -23,6 +25,11 @@ public struct Cell: ExpressibleByStringLiteral, ExpressibleByArrayLiteral {
     init(_ row: UInt32, _ col: UInt16) {
         self.row = row
         self.column = col
+    }
+    
+    
+    public static func cell(row: Int, column: Int) -> Cell {
+        Cell(UInt32(row), UInt16(column))
     }
 }
 
