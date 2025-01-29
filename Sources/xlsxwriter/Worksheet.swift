@@ -305,6 +305,18 @@ public struct Worksheet {
         table_columns.forEach { $0.header.deallocate() }
         return self
     }
+    
+    @discardableResult
+    public func freezePanes(firstRow: Int, firstColumn: Int) -> Self {
+        worksheet_freeze_panes(lxw_worksheet, firstRow.uint32, firstColumn.uint16)
+        return self
+    }
+    
+    @discardableResult
+    public func freezePanes(firstRow: Int, firstColumn: Int, topRow: Int, leftColumn: Int, isSplit: Bool) -> Self {
+        worksheet_freeze_panes_opt(lxw_worksheet, firstRow.uint32, firstColumn.uint16, topRow.uint32, leftColumn.uint16, isSplit ? 1 : 0)
+        return self
+    }
 }
 
 private func makeCString(from str: String) -> UnsafePointer<CChar> {
