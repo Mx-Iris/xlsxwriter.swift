@@ -18,9 +18,12 @@ public enum Value: ExpressibleByFloatLiteral, ExpressibleByStringLiteral {
     public init(stringLiteral value: String) { self = .string(value) }
 }
 
-public enum Axis { case x, y }
+public enum Axis: CaseIterable {
+    case x
+    case y
+}
 
-public enum TrendlineType: UInt8 {
+public enum TrendlineType: UInt8, CaseIterable {
     case linear
     case log
     case poly
@@ -30,7 +33,7 @@ public enum TrendlineType: UInt8 {
 }
 
 /// Cell border styles for use with format.set_border()
-public enum Border: UInt8 {
+public enum Border: UInt8, CaseIterable {
     case noBorder
     case thin
     case medium
@@ -48,7 +51,7 @@ public enum Border: UInt8 {
 }
 
 /// Alignment values for format.set(alignment:)
-public enum HorizontalAlignment: UInt8 {
+public enum HorizontalAlignment: UInt8, CaseIterable {
     case none = 0
     case left
     case center
@@ -60,7 +63,7 @@ public enum HorizontalAlignment: UInt8 {
 }
 
 /// Alignment values for format.set(alignment:)
-public enum VerticalAlignment: UInt8 {
+public enum VerticalAlignment: UInt8, CaseIterable {
     case top = 8
     case bottom
     case center
@@ -69,7 +72,7 @@ public enum VerticalAlignment: UInt8 {
 }
 
 /// The Excel paper format type.
-public enum PaperType: UInt8 {
+public enum PaperType: UInt8, CaseIterable {
     case printerDefault = 0 // Printer default
     case letter // 8 1/2 x 11 in
     case letterSmall // 8 1/2 x 11 in
@@ -115,7 +118,7 @@ public enum PaperType: UInt8 {
 }
 
 /// Available chart types.
-public enum ChartType: UInt8 {
+public enum ChartType: UInt8, CaseIterable {
     case none
     case area
     case area_stacked
@@ -141,7 +144,7 @@ public enum ChartType: UInt8 {
     case radar_filled
 }
 
-public enum LegendPosition: UInt8 {
+public enum LegendPosition: UInt8, CaseIterable {
     case none = 0
     case right
     case left
@@ -153,7 +156,7 @@ public enum LegendPosition: UInt8 {
     case overlayTopRight
 }
 
-public enum TotalFunction: UInt8, ExpressibleByIntegerLiteral {
+public enum TotalFunction: UInt8, ExpressibleByIntegerLiteral, CaseIterable {
     case none = 0
     /// Use the average function as the table total.
     case average = 101
